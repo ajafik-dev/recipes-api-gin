@@ -20,3 +20,8 @@ curl --location --request POST '<http://localhost:8080/recipes>'
 "Step 3."
 ]
 }
+
+
+> swagger generate spec -o ./swagger.json
+> swagger serve ./swagger.json
+> swagger serve -F swagger ./swagger.json
