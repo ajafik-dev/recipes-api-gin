@@ -30,4 +30,6 @@ curl --location --request POST '<http://localhost:8080/recipes>'
 # Commands
 - go get go.mongodb.org/mongo-driver/v2/mongo
 
-- MONGO_URI="mongodb://admin:password@localhost:27017/test?authSource=admin" go run main.go
+- MONGO_URI="mongodb://admin:password@localhost:27017/test?authSource=admin" MONGO_DATABASE=demo go run main.go
+
+- mongoimport --username admin --password password --authenticationDatabase admin --db demo --collection recipes --file recipes.json --jsonArray
