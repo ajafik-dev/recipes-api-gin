@@ -24,7 +24,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -155,26 +154,22 @@ func DeleteRecipeHandler(c *gin.Context) {
 
 func SearchRecipesHandler(c *gin.Context) {
 	tag := c.Query("tag")
+
+	cur, err := collection.Find(ctx, bson.M{"tags": bson.M{"$regex": tag, "$options": "i"}})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer cur.Close(ctx)
+
 	listOfRecipes := make([]Recipe, 0)
-
-	for i := 0; i < len(recipes); i++ {
-		found := false
-
-		for _, t := range recipes[i].Tags {
-			if strings.EqualFold(t, tag) {
-				found = true
-				break
-			}
-		}
-
-		if found {
-			listOfRecipes = append(listOfRecipes, recipes[i])
-		}
-
+	for cur.Next(ctx) {
+		var recipe Recipe
+		cur.Decode(&recipe)
+		listOfRecipes = append(listOfRecipes, recipe)
 	}
 
 	c.JSON(http.StatusOK, listOfRecipes)
-
 }
 
 var ctx context.Context
