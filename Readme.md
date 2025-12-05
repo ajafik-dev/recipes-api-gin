@@ -25,3 +25,9 @@ curl --location --request POST '<http://localhost:8080/recipes>'
 > swagger generate spec -o ./swagger.json
 > swagger serve ./swagger.json
 > swagger serve -F swagger ./swagger.json
+
+
+# Commands
+- go get go.mongodb.org/mongo-driver/v2/mongo
+
+- MONGO_URI="mongodb://admin:password@localhost:27017/test?authSource=admin" go run main.go
