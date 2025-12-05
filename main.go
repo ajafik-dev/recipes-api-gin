@@ -37,12 +37,12 @@ import (
 )
 
 type Recipe struct {
-	ID           string    `json:"id" bson:"_id"`
-	Name         string    `json:"name" bson:"name"`
-	Tags         []string  `json:"tags" bson:"tags"`
-	Ingredients  []string  `json:"ingredients" bson:"ingredients"`
-	Instructions []string  `json:"instructions" bson:"instructions"`
-	PublishedAt  time.Time `json:"publishedAt" bson:"publishedAt"`
+	ID           primitive.ObjectID `json:"id" bson:"_id"`
+	Name         string             `json:"name" bson:"name"`
+	Tags         []string           `json:"tags" bson:"tags"`
+	Ingredients  []string           `json:"ingredients" bson:"ingredients"`
+	Instructions []string           `json:"instructions" bson:"instructions"`
+	PublishedAt  time.Time          `json:"publishedAt" bson:"publishedAt"`
 }
 
 var recipes []Recipe
@@ -62,7 +62,7 @@ func NewRecipeHandler(c *gin.Context) {
 		return
 	}
 
-	recipe.ID = primitive.NewObjectID().String()
+	recipe.ID = primitive.NewObjectID()
 	recipe.PublishedAt = time.Now()
 	_, err := collection.InsertOne(ctx, recipe)
 	if err != nil {
@@ -113,43 +113,44 @@ func UpdateRecipeHandler(c *gin.Context) {
 		return
 	}
 
-	index := -1
-
-	for i := 0; i < len(recipes); i++ {
-		if recipes[i].ID == id {
-			index = i
-		}
-	}
-
-	if index == -1 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Recipe Not Found"})
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid recipe ID"})
 		return
 	}
 
-	recipes[index] = recipe
+	_, err = collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": bson.M{"name": recipe.Name, "tags": recipe.Tags, "ingredients": recipe.Ingredients, "instructions": recipe.Instructions}})
 
-	c.JSON(http.StatusOK, recipe)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"error": "Recipe has been Updated"})
 
 }
 
 func DeleteRecipeHandler(c *gin.Context) {
 	id := c.Param("id")
 
-	index := -1
-	for i := 0; i < len(recipes); i++ {
-		if recipes[i].ID == id {
-			index = i
-		}
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid recipe ID"})
+		return
 	}
 
-	if index == -1 {
+	result, err := collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if result.DeletedCount == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Recipe not found"})
 		return
 	}
 
-	recipes = append(recipes[:index], recipes[index+1:]...)
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe deleted"})
-
 }
 
 func SearchRecipesHandler(c *gin.Context) {
