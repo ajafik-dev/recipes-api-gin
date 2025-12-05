@@ -20,29 +20,29 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/rs/xid"
-
 	"github.com/gin-gonic/gin"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type Recipe struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Tags         []string  `json:"tags"`
-	Ingredients  []string  `json:"ingredients"`
-	Instructions []string  `json:"instructions"`
-	PublishedAt  time.Time `json:"publishedAt"`
+	ID           string    `json:"id" bson:"_id"`
+	Name         string    `json:"name" bson:"name"`
+	Tags         []string  `json:"tags" bson:"tags"`
+	Ingredients  []string  `json:"ingredients" bson:"ingredients"`
+	Instructions []string  `json:"instructions" bson:"instructions"`
+	PublishedAt  time.Time `json:"publishedAt" bson:"publishedAt"`
 }
 
 var recipes []Recipe
@@ -62,9 +62,14 @@ func NewRecipeHandler(c *gin.Context) {
 		return
 	}
 
-	recipe.ID = xid.New().String()
+	recipe.ID = primitive.NewObjectID().String()
 	recipe.PublishedAt = time.Now()
-	recipes = append(recipes, recipe)
+	_, err := collection.InsertOne(ctx, recipe)
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error inserting a new recipe"})
+		return
+	}
 	c.JSON(http.StatusOK, recipe)
 
 }
